@@ -1,0 +1,19 @@
+const presets = [
+  ["@babel/preset-env"],
+  <% if(language === 'ts') { %> 
+  ["@babel/preset-typescript"]
+  <% } %>
+];
+
+const isProduction = process.env.production;
+if (isProduction) {
+  // plugins.push();
+  // presets.push()
+} else {
+  // plugins.push();
+  // presets.push()
+}
+
+module.exports = {
+  presets,
+};

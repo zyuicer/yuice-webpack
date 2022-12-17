@@ -1,0 +1,12 @@
+const MiniCssPlugin = require("mini-css-extract-plugin");
+
+const prod = () => ({
+  mode: "production",
+  plugins: [
+    new MiniCssPlugin({
+      filename: "css/[name].[contenthash:6].css",
+    }),
+  ],
+});
+
+module.exports = prod;

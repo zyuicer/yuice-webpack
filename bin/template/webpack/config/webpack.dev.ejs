@@ -1,0 +1,11 @@
+const dev = () => {
+  return {
+    mode: "development",
+    devtool: "source-map",
+    plugins: [],
+    devServer: {
+      hot: true,
+    },
+  };
+};
+module.exports = dev;

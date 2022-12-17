@@ -1,0 +1,179 @@
+const path = require("path");
+
+<% if(plugin['clean-webpack-plugin']) { %> 
+const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+<% } %>
+
+<% if(plugin['html-webpack-plugin']) { %> 
+const HtmlWebacpkPlugin = require("html-webpack-plugin");
+<% } %>
+
+<% if(plugin['copy-webpack-plugin']) { %> 
+const CopyWebpackPlugin = require("copy-webpack-plugin");
+<% } %>
+
+const TerserPlugin = require("terser-webpack-plugin");
+const MiniCssPlugin = require("mini-css-extract-plugin");
+const { DefinePlugin } = require("webpack");
+
+function resolve(p) {
+  return path.resolve(__dirname, p);
+}
+
+function changeStyleLoader(flag) {
+  return flag ? MiniCssPlugin.loader : "style-loader";
+}
+
+const comm = (isProduction) => ({
+  entry: {
+    index: resolve("../src/index.ts"),
+  },
+  output: {
+    filename: "js/[name].[contenthash:6].bundle.js",
+    path: resolve("../dist"),
+    chunkFilename: "js/[name].[contenthash:6].chunk.js", // 异步分包的 名字 魔法注释将会 吧name填入
+  },
+  resolve: {
+    extensions: [".js", ".json", ".wasm", ".ts"],
+  },
+  optimization: {
+    runtimeChunk: {
+      name: (entrypoint) => `runtime~${entrypoint.name}`, // () => import(/* webpackChunkName: "about" */ '../views/About.vue')
+    },
+    // 开启默认配置算法 false 将会关闭
+    minimize: true,
+    // 未使用将会被 打上标记 进行树摇
+    usedExports: true,
+    minimizer: [
+      new TerserPlugin({
+        parallel: true,
+        extractComments: false,
+      }),
+    ],
+    splitChunks: {
+      chunks: "all",
+      minSize: 20000,
+      cacheGroups: {
+        vendor: {
+          test: /node_modules/,
+          filename: "js/[id]_vendor.js",
+          priority: -10,
+        },
+        default: {
+          minChunks: 2, // 如果被 import 应用两次 拆分出来打包
+          filename: "js/comm_[id].js",
+          priority: -20,
+        },
+      },
+    },
+  },
+  module: {
+    rules: [
+    {
+      test: /\.(jpe?g|png|gif|webp|svg)$/,
+      type: 'asset',
+      parser: {
+        dataUrlCondition: {
+          maxSize: 1024 * 100
+        }
+      }
+    },
+    <% if(loader['css-loader']) { %> 
+      {
+        test: /\.css$/i,
+        use: [
+          {
+            loader: changeStyleLoader(isProduction),
+            options: {
+              importLoaders: 1,
+            },
+          },
+          {
+            loader: "postcss-loader",
+          },
+        ],
+      },
+      <% } %>
+      <% if(language === 'ts') { %>  
+      {
+        test: /\.ts$/i,
+        use: [
+          {
+            loader: "babel-loader",
+          },
+        ],
+      },
+      <% } %>
+
+      <% if(loader['less-loader']) { %> 
+      {
+        test: /\.less$/i,
+        use: [
+          {
+            loader: changeStyleLoader(isProduction),
+          },
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2,
+            },
+          },
+          {
+            loader: "less-loader",
+          },
+          {
+            loader: "postcss-loader",
+          },
+        ],
+      },
+      <% } %>
+      <% if(loader['sass-loader']) { %> 
+      {
+        test: /\.s[ac]ss$/i,
+        use: [
+          {
+            loader: changeStyleLoader(isProduction),
+          },
+          {
+            loader: "css-loader",
+            options: {
+              importLoaders: 2,
+            },
+          },
+          {
+            loader: "sass-loader",
+          },
+        ],
+      },
+      <% } %>
+    ],
+  },
+  plugins: [
+  <% if(plugin['clean-webpack-plugin']) { %> 
+    new CleanWebpackPlugin(),
+  <% } %> 
+  <% if(plugin['copy-webpack-plugin']) { %> 
+    new CopyWebpackPlugin({
+    patterns: [
+        {
+          from: "public/**/*",
+          globOptions: {
+            ignore: ["**/index.html"],
+          },
+        },
+      ],
+    }),
+  <% } %> 
+  <% if(plugin['html-webpack-plugin']) { %> 
+    new HtmlWebacpkPlugin({
+      template: "./public/index.html",
+      title: "<%= packageName  %> "
+    }),
+  <% } %> 
+  new DefinePlugin({
+    BASE_URL: isProduction ? "'/'" : "'./'",
+  }),
+  ],
+});
+
+module.exports = comm;
